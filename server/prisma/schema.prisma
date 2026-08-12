@@ -1,0 +1,32 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Employee {
+  id            Int       @id @default(autoincrement())
+  fullName      String
+  position      String
+  // Время начала рабочего дня для этого сотрудника, формат "HH:MM"
+  workStartTime String
+  telegramId    String?   @unique
+  telegramName  String?
+  createdAt     DateTime     @default(now())
+  attendances   Attendance[]
+}
+
+model Attendance {
+  id         Int       @id @default(autoincrement())
+  employeeId Int
+  employee   Employee  @relation(fields: [employeeId], references: [id])
+  // Календарный день смены в часовом поясе компании, формат "YYYY-MM-DD" — гарантирует одну запись в день
+  day        String
+  checkInAt  DateTime?
+  checkOutAt DateTime?
+
+  @@unique([employeeId, day])
+}

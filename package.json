@@ -1,0 +1,22 @@
+{
+  "name": "attendance-bot",
+  "private": true,
+  "workspaces": [
+    "server",
+    "webapp"
+  ],
+  "scripts": {
+    "dev:server": "npm run dev -w server",
+    "dev:webapp": "npm run dev -w webapp",
+    "build": "npm run build -w webapp && npm run build -w server",
+    "start": "npm run start -w server"
+  },
+  "allowScripts": {
+    "@prisma/client@5.22.0": true,
+    "@prisma/engines@5.22.0": true,
+    "esbuild@0.28.2": true,
+    "esbuild@0.21.5": true,
+    "prisma@5.22.0": true,
+    "fsevents@2.3.3": true
+  }
+}
