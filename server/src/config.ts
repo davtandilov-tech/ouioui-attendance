@@ -16,7 +16,9 @@ export const config = {
       .map((id) => id.trim())
       .filter(Boolean)
   ),
-  publicUrl: required("PUBLIC_URL"),
+  // На Render этот адрес доступен автоматически через RENDER_EXTERNAL_URL;
+  // на своём сервере/локально указывается явно через PUBLIC_URL.
+  publicUrl: process.env.PUBLIC_URL || required("RENDER_EXTERNAL_URL"),
   timezone: process.env.TIMEZONE || "Europe/Moscow",
   port: Number(process.env.PORT) || 3000,
 };

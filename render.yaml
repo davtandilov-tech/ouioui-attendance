@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: ouioui-attendance
+    runtime: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm run start -w server
+    envVars:
+      - key: BOT_TOKEN
+        sync: false
+      - key: ADMIN_TELEGRAM_IDS
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: TIMEZONE
+        value: Europe/Moscow

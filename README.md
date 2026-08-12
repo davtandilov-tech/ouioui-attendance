@@ -25,16 +25,18 @@
 
 ## 3. Задеплоить на Render (бесплатно)
 
-1. Код должен лежать в GitHub-репозитории (могу помочь завести, если ещё не сделано)
-2. На [render.com](https://render.com) → **New → Web Service** → подключить репозиторий
-3. Параметры сборки:
-   - **Build Command**: `npm install && npm run build`
-   - **Start Command**: `npm run start -w server`
-4. В **Environment** добавить переменные из `.env.example`:
-   - `BOT_TOKEN`, `ADMIN_TELEGRAM_IDS`, `TIMEZONE`
+В репозитории есть `render.yaml` — Render прочитает его сам и заполнит build/start-команды и порт, останется только вставить секреты.
+
+1. Код должен лежать в GitHub-репозитории
+2. На [render.com](https://render.com) → **New → Blueprint** → выбрать репозиторий → Render найдёт `render.yaml` и предложит создать сервис `ouioui-attendance`
+3. Перед применением попросит заполнить переменные, помеченные как секретные:
+   - `BOT_TOKEN`
+   - `ADMIN_TELEGRAM_IDS`
    - `DATABASE_URL` — строка из шага 2
-   - `PUBLIC_URL` — Render покажет адрес сервиса ещё до первого деплоя (`https://<имя-сервиса>.onrender.com`), впишите его заранее
-5. Деплой запустится сам. Проверить логи — на вкладке **Logs** в Render, ошибок про `BOT_TOKEN`/`DATABASE_URL` быть не должно.
+4. **Apply** — Render соберёт и задеплоит сам. `PUBLIC_URL` заполнять не нужно — сервис сам возьмёт свой адрес через `RENDER_EXTERNAL_URL`.
+5. Проверить логи — вкладка **Logs** в Render, ошибок про `BOT_TOKEN`/`DATABASE_URL` быть не должно.
+
+Без Blueprint (вручную через **New → Web Service**) нужно будет самостоятельно указать те же Build/Start Command (`npm install && npm run build` / `npm run start -w server`) и переменные окружения, включая `PUBLIC_URL=https://<имя-сервиса>.onrender.com`.
 
 Бесплатный инстанс Render засыпает после ~15 минут без запросов и просыпается по первому обращению (несколько секунд задержки) — для внутреннего инструмента это некритично.
 
