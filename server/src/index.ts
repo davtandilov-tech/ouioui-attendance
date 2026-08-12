@@ -24,6 +24,19 @@ app.get("*", (_req, res) => {
   res.sendFile(path.join(webappDist, "index.html"));
 });
 
+// Ловит всё, что дошло сюда через next(err) из API-роутов — без этого необработанная
+// ошибка (например, обрыв связи с БД) валит весь процесс вместо одного запроса.
+app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  console.error("Ошибка запроса:", err);
+  if (!res.headersSent) {
+    res.status(500).json({ error: "Внутренняя ошибка сервера" });
+  }
+});
+
+process.on("unhandledRejection", (err) => {
+  console.error("Необработанный reject (сервер продолжает работать):", err);
+});
+
 app.listen(config.port, async () => {
   console.log(`Сервер запущен на порту ${config.port}`);
 

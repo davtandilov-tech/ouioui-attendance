@@ -15,6 +15,16 @@ export function timeOfDay(date: Date): string {
   });
 }
 
+/** Разбирает время начала смены из ввода вида "9:00", "09-00", "09.00" в канонический "09:00" */
+export function normalizeTimeInput(raw: string): string | null {
+  const match = raw.trim().match(/^(\d{1,2})[:\-.\s](\d{2})$/);
+  if (!match) return null;
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  if (hours > 23 || minutes > 59) return null;
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+}
+
 /** Опоздал ли сотрудник: сравнение локального времени отметки с плановым временем начала (HH:MM) */
 export function isLate(checkInAt: Date, workStartTime: string): boolean {
   return timeOfDay(checkInAt) > workStartTime;
