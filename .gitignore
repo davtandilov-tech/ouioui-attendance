@@ -6,4 +6,4 @@ dist/
 server/prisma/dev.db
 server/prisma/dev.db-journal
 .DS_Store
-.claude/settings.local.json
+.claude/
