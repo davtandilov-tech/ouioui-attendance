@@ -21,6 +21,9 @@ export const config = {
   publicUrl: process.env.PUBLIC_URL || required("RENDER_EXTERNAL_URL"),
   timezone: process.env.TIMEZONE || "Europe/Moscow",
   port: Number(process.env.PORT) || 3000,
+  // Секрет для внешнего cron-триггера напоминаний (см. /internal/reminders/*).
+  // Опционален: если не задан, эндпоинты напоминаний отключены, остальное приложение работает как обычно.
+  cronSecret: process.env.CRON_SECRET || null,
 };
 
 export function isAdmin(telegramId: string): boolean {

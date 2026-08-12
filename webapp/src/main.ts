@@ -1,4 +1,4 @@
-import { api, reportCsvUrl, type AdminEmployee } from "./api.js";
+import { api, reportCsvUrl, type AdminEmployee, type UnlinkedEmployee } from "./api.js";
 import { alertDialog, confirmDialog, initData, tg } from "./telegram.js";
 
 const app = document.getElementById("app")!;
@@ -47,19 +47,42 @@ async function renderUnlinkedList(container: HTMLElement) {
     const item = document.createElement("div");
     item.className = "list-item";
     item.innerHTML = `<div>${emp.fullName}<div class="status">${emp.position}</div></div>`;
-    item.onclick = () => confirmLink(emp.id, emp.fullName);
+    item.onclick = () => renderLinkForm(container, emp);
     container.appendChild(item);
   }
 }
 
-async function confirmLink(employeeId: number, fullName: string) {
-  if (!(await confirmDialog(`Это вы — ${fullName}?`))) return;
-  try {
-    await api.link(employeeId);
-    await boot();
-  } catch (e) {
-    await alertDialog((e as Error).message);
-  }
+function renderLinkForm(container: HTMLElement, emp: UnlinkedEmployee) {
+  container.innerHTML = `
+    <p>Это вы — <strong>${emp.fullName}</strong>?</p>
+    <p>Укажите время начала вашей смены:</p>
+    <input id="link-time" placeholder="Например, 09:00" />
+    <button class="button" id="link-confirm">Подтвердить</button>
+    <button class="button secondary" id="link-cancel">Назад</button>
+    <div class="error" id="link-error"></div>
+  `;
+
+  document.getElementById("link-cancel")!.addEventListener("click", () => {
+    renderUnlinkedList(container);
+  });
+
+  document.getElementById("link-confirm")!.addEventListener("click", async () => {
+    const workStartTime = (document.getElementById("link-time") as HTMLInputElement).value.trim();
+    const errorEl = document.getElementById("link-error")!;
+    errorEl.textContent = "";
+
+    if (!workStartTime) {
+      errorEl.textContent = "Укажите время начала смены";
+      return;
+    }
+
+    try {
+      await api.link(emp.id, workStartTime);
+      await boot();
+    } catch (e) {
+      errorEl.textContent = (e as Error).message;
+    }
+  });
 }
 
 async function renderMainScreen(isAdmin: boolean, tab: "me" | "admin" = "me") {
@@ -100,7 +123,7 @@ async function renderMeContent() {
   content.innerHTML = `
     <div class="card">
       <div>${e.fullName}</div>
-      <div class="status">${e.position} · начало смены ${e.workStartTime}</div>
+      <div class="status">${e.position} · начало смены ${e.workStartTime ?? "не указано"}</div>
       ${e.checkInTime ? `<div class="status ${e.lateToday ? "late" : "ok"}">Приход: ${e.checkInTime}${e.lateToday ? " (опоздание)" : ""}</div>` : ""}
       ${e.checkOutTime ? `<div class="status">Уход: ${e.checkOutTime}</div>` : ""}
       ${e.workedHours != null ? `<div class="status">Отработано часов: ${e.workedHours}</div>` : ""}
@@ -140,7 +163,7 @@ async function renderAdminContent() {
     <div class="card">
       <input id="new-name" placeholder="ФИО" />
       <input id="new-position" placeholder="Должность" />
-      <input id="new-start" placeholder="Начало смены, напр. 09:00" />
+      <input id="new-start" placeholder="Начало смены (необязательно — укажет сотрудник сам)" />
       <button class="button" id="add-btn">Добавить</button>
       <div class="error" id="add-error"></div>
     </div>
@@ -163,7 +186,7 @@ async function renderAdminContent() {
     errorEl.textContent = "";
 
     try {
-      await api.adminAddEmployee({ fullName, position, workStartTime });
+      await api.adminAddEmployee({ fullName, position, ...(workStartTime ? { workStartTime } : {}) });
       await renderAdminContent();
     } catch (e) {
       errorEl.textContent = (e as Error).message;

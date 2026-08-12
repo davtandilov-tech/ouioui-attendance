@@ -25,7 +25,7 @@ export interface Me {
     id: number;
     fullName: string;
     position: string;
-    workStartTime: string;
+    workStartTime: string | null;
     checkInTime: string | null;
     checkOutTime: string | null;
     lateToday: boolean | null;
@@ -43,7 +43,7 @@ export interface AdminEmployee {
   id: number;
   fullName: string;
   position: string;
-  workStartTime: string;
+  workStartTime: string | null;
   linked: boolean;
   telegramName: string | null;
   checkInTime: string | null;
@@ -55,14 +55,14 @@ export interface AdminEmployee {
 export const api = {
   me: () => request<Me>("/me"),
   unlinkedEmployees: () => request<UnlinkedEmployee[]>("/unlinked-employees"),
-  link: (employeeId: number) =>
-    request<{ ok: true }>("/link", { method: "POST", body: JSON.stringify({ employeeId }) }),
+  link: (employeeId: number, workStartTime: string) =>
+    request<{ ok: true }>("/link", { method: "POST", body: JSON.stringify({ employeeId, workStartTime }) }),
   checkin: () => request<{ ok: true; checkInTime: string }>("/checkin", { method: "POST" }),
   checkout: () =>
     request<{ ok: true; checkOutTime: string; workedHours: number }>("/checkout", { method: "POST" }),
 
   adminEmployees: () => request<AdminEmployee[]>("/admin/employees"),
-  adminAddEmployee: (data: { fullName: string; position: string; workStartTime: string }) =>
+  adminAddEmployee: (data: { fullName: string; position: string; workStartTime?: string }) =>
     request<AdminEmployee>("/admin/employees", { method: "POST", body: JSON.stringify(data) }),
   adminUpdateEmployee: (id: number, data: Record<string, unknown>) =>
     request<AdminEmployee>(`/admin/employees/${id}`, { method: "PATCH", body: JSON.stringify(data) }),

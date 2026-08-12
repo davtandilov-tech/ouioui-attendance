@@ -12,5 +12,7 @@ services:
         sync: false
       - key: DATABASE_URL
         sync: false
+      - key: CRON_SECRET
+        sync: false
       - key: TIMEZONE
         value: Europe/Moscow

@@ -11,8 +11,9 @@ model Employee {
   id            Int       @id @default(autoincrement())
   fullName      String
   position      String
-  // Время начала рабочего дня для этого сотрудника, формат "HH:MM"
-  workStartTime String
+  // Время начала рабочего дня для этого сотрудника, формат "HH:MM".
+  // Задаёт сам сотрудник при первой привязке аккаунта — до этого момента null.
+  workStartTime String?
   telegramId    String?   @unique
   telegramName  String?
   createdAt     DateTime     @default(now())

@@ -26,7 +26,8 @@ export function normalizeTimeInput(raw: string): string | null {
 }
 
 /** Опоздал ли сотрудник: сравнение локального времени отметки с плановым временем начала (HH:MM) */
-export function isLate(checkInAt: Date, workStartTime: string): boolean {
+export function isLate(checkInAt: Date, workStartTime: string | null): boolean | null {
+  if (!workStartTime) return null;
   return timeOfDay(checkInAt) > workStartTime;
 }
 

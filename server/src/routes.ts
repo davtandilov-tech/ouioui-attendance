@@ -1,5 +1,5 @@
-import type { NextFunction, Request, RequestHandler, Response } from "express";
 import { Router } from "express";
+import { ah } from "./asyncHandler.js";
 import { prisma } from "./db.js";
 import { requireAdmin, telegramAuthMiddleware } from "./telegramAuth.js";
 import { dayKey, isLate, normalizeTimeInput, timeOfDay, workedHours } from "./time.js";
@@ -8,15 +8,7 @@ export const router = Router();
 
 router.use(telegramAuthMiddleware);
 
-// Express 4 не ловит отклонённые промисы из async-хендлеров сами — без этой обёртки
-// любая ошибка (например, обрыв связи с БД) валит весь процесс, а не только один запрос.
-function ah(handler: (req: Request, res: Response) => Promise<void>): RequestHandler {
-  return (req, res, next: NextFunction) => {
-    handler(req, res).catch(next);
-  };
-}
-
-function serializeAttendance(a: { checkInAt: Date | null; checkOutAt: Date | null }, workStartTime: string) {
+function serializeAttendance(a: { checkInAt: Date | null; checkOutAt: Date | null }, workStartTime: string | null) {
   return {
     checkInTime: a.checkInAt ? timeOfDay(a.checkInAt) : null,
     checkOutTime: a.checkOutAt ? timeOfDay(a.checkOutAt) : null,
@@ -79,6 +71,12 @@ router.post(
       return;
     }
 
+    const workStartTime = normalizeTimeInput(String(req.body?.workStartTime ?? ""));
+    if (!workStartTime) {
+      res.status(400).json({ error: "Укажите время начала смены в формате ЧЧ:ММ, например 09:00" });
+      return;
+    }
+
     const alreadyLinked = await prisma.employee.findUnique({ where: { telegramId } });
     if (alreadyLinked) {
       res.status(409).json({ error: "Этот Telegram-аккаунт уже привязан к сотруднику" });
@@ -101,7 +99,7 @@ router.post(
 
     await prisma.employee.update({
       where: { id: employeeId },
-      data: { telegramId, telegramName },
+      data: { telegramId, telegramName, workStartTime },
     });
 
     res.json({ ok: true });
@@ -208,15 +206,20 @@ adminRouter.post(
   "/employees",
   ah(async (req, res) => {
     const { fullName, position, workStartTime } = req.body ?? {};
-    const normalizedTime = normalizeTimeInput(String(workStartTime ?? ""));
 
     if (!fullName || !position) {
       res.status(400).json({ error: "Укажите ФИО и должность" });
       return;
     }
-    if (!normalizedTime) {
-      res.status(400).json({ error: "Время начала смены должно быть в формате ЧЧ:ММ, например 09:00" });
-      return;
+
+    // Время начала смены необязательно здесь — сотрудник укажет его сам при привязке аккаунта.
+    let normalizedTime: string | null = null;
+    if (workStartTime) {
+      normalizedTime = normalizeTimeInput(String(workStartTime));
+      if (!normalizedTime) {
+        res.status(400).json({ error: "Время начала смены должно быть в формате ЧЧ:ММ, например 09:00" });
+        return;
+      }
     }
 
     const employee = await prisma.employee.create({
@@ -297,7 +300,7 @@ adminRouter.get(
             r.workStartTime,
             r.checkInTime ?? "",
             r.checkOutTime ?? "",
-            r.lateToday ? "да" : "нет",
+            r.lateToday == null ? "" : r.lateToday ? "да" : "нет",
             r.workedHours ?? "",
           ]
             .map((v) => `"${String(v).replace(/"/g, '""')}"`)

@@ -5,6 +5,7 @@ import express from "express";
 import { webhookCallback } from "grammy";
 import { bot } from "./bot.js";
 import { config } from "./config.js";
+import { remindersRouter } from "./reminders.js";
 import { router } from "./routes.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -19,6 +20,7 @@ const app = express();
 app.use(express.json());
 app.use(webhookPath, webhookCallback(bot, "express", { secretToken: webhookSecret }));
 app.use("/api", router);
+app.use("/internal/reminders", remindersRouter);
 app.use(express.static(webappDist));
 app.get("*", (_req, res) => {
   res.sendFile(path.join(webappDist, "index.html"));
