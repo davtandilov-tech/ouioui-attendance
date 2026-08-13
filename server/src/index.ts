@@ -60,6 +60,13 @@ app.listen(config.port, async () => {
     await bot.api.setChatMenuButton({
       menu_button: { type: "web_app", text: "Открыть", web_app: { url: config.publicUrl } },
     });
+    // Текст на пустом экране до нажатия Start и краткое описание в профиле бота —
+    // задаются через Bot API, применяются сами при каждом старте, вручную через
+    // BotFather трогать не нужно.
+    await bot.api.setMyDescription(
+      "Бот для учёта рабочего времени команды Oui Oui.\n\nОткройте мини-приложение, чтобы отметить приход и уход с работы. Администраторы видят отчёты и получают уведомления о каждой отметке."
+    );
+    await bot.api.setMyShortDescription("Учёт прихода и ухода для команды Oui Oui");
   } catch (err) {
     console.error("Не удалось инициализировать бота (API-сервер продолжает работать):", err);
   }
