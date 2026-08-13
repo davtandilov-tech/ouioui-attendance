@@ -78,6 +78,11 @@ h2 {
   cursor: default;
 }
 
+.busy {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
 .button.secondary {
   background: transparent;
   color: var(--color-brown);

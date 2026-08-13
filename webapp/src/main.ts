@@ -7,6 +7,24 @@ function escapeHtml(s: string): string {
   return div.innerHTML;
 }
 
+// Блокирует элемент на время запроса — без этого быстрый двойной тап
+// на телефоне отправляет действие (приход/уход/сохранение) дважды.
+function onClickBusy(el: HTMLElement, handler: () => Promise<void>) {
+  let busy = false;
+  el.addEventListener("click", async (ev) => {
+    ev.preventDefault();
+    if (busy) return;
+    busy = true;
+    el.classList.add("busy");
+    try {
+      await handler();
+    } finally {
+      busy = false;
+      el.classList.remove("busy");
+    }
+  });
+}
+
 const app = document.getElementById("app")!;
 const LOGO = `<img src="/logo.png" class="logo" alt="Oui Oui" />`;
 
@@ -72,7 +90,7 @@ function renderLinkForm(container: HTMLElement, emp: UnlinkedEmployee) {
     renderUnlinkedList(container);
   });
 
-  document.getElementById("link-confirm")!.addEventListener("click", async () => {
+  onClickBusy(document.getElementById("link-confirm")!, async () => {
     const workStartTime = (document.getElementById("link-time") as HTMLInputElement).value.trim();
     const errorEl = document.getElementById("link-error")!;
     errorEl.textContent = "";
@@ -138,7 +156,7 @@ async function renderMeContent() {
     </div>
   `;
 
-  document.getElementById("checkin")!.addEventListener("click", async () => {
+  onClickBusy(document.getElementById("checkin")!, async () => {
     try {
       await api.checkin();
       await renderMeContent();
@@ -147,7 +165,7 @@ async function renderMeContent() {
     }
   });
 
-  document.getElementById("checkout")!.addEventListener("click", async () => {
+  onClickBusy(document.getElementById("checkout")!, async () => {
     try {
       await api.checkout();
       await renderMeContent();
@@ -187,7 +205,7 @@ async function renderAdminContent() {
 
   renderEmployeeTable(employees);
 
-  document.getElementById("add-btn")!.addEventListener("click", async () => {
+  onClickBusy(document.getElementById("add-btn")!, async () => {
     const fullName = (document.getElementById("new-name") as HTMLInputElement).value.trim();
     const position = (document.getElementById("new-position") as HTMLInputElement).value.trim();
     const workStartTime = (document.getElementById("new-start") as HTMLInputElement).value.trim();
@@ -202,7 +220,7 @@ async function renderAdminContent() {
     }
   });
 
-  document.getElementById("report-show-btn")!.addEventListener("click", async () => {
+  onClickBusy(document.getElementById("report-show-btn")!, async () => {
     const from = (document.getElementById("report-from") as HTMLInputElement).value;
     const to = (document.getElementById("report-to") as HTMLInputElement).value;
     const errorEl = document.getElementById("report-error")!;
@@ -221,7 +239,7 @@ async function renderAdminContent() {
     }
   });
 
-  document.getElementById("report-btn")!.addEventListener("click", async () => {
+  onClickBusy(document.getElementById("report-btn")!, async () => {
     const from = (document.getElementById("report-from") as HTMLInputElement).value;
     const to = (document.getElementById("report-to") as HTMLInputElement).value;
     if (!from || !to) {
@@ -313,14 +331,13 @@ function renderEmployeeTable(employees: AdminEmployee[]) {
   });
 
   table.querySelectorAll<HTMLAnchorElement>("[data-delete]").forEach((link) => {
-    link.onclick = async (ev) => {
-      ev.preventDefault();
+    onClickBusy(link, async () => {
       const id = Number(link.dataset.delete);
       const employee = employees.find((e) => e.id === id);
       if (!employee || !(await confirmDialog(`Удалить сотрудника ${employee.fullName}?`))) return;
       await api.adminDeleteEmployee(id);
       await renderAdminContent();
-    };
+    });
   });
 }
 
@@ -346,8 +363,7 @@ function renderEditRow(e: AdminEmployee) {
     renderAdminContent();
   });
 
-  document.getElementById("edit-save")!.addEventListener("click", async (ev) => {
-    ev.preventDefault();
+  onClickBusy(document.getElementById("edit-save")!, async () => {
     const fullName = (document.getElementById("edit-name") as HTMLInputElement).value.trim();
     const position = (document.getElementById("edit-position") as HTMLInputElement).value.trim();
     const workStartTime = (document.getElementById("edit-time") as HTMLInputElement).value.trim();
@@ -372,12 +388,13 @@ function renderEditRow(e: AdminEmployee) {
   });
 
   const unlinkLink = document.getElementById("edit-unlink");
-  unlinkLink?.addEventListener("click", async (ev) => {
-    ev.preventDefault();
-    if (!(await confirmDialog(`Отвязать Telegram-аккаунт от ${e.fullName}?`))) return;
-    await api.adminUpdateEmployee(e.id, { unlink: true });
-    await renderAdminContent();
-  });
+  if (unlinkLink) {
+    onClickBusy(unlinkLink, async () => {
+      if (!(await confirmDialog(`Отвязать Telegram-аккаунт от ${e.fullName}?`))) return;
+      await api.adminUpdateEmployee(e.id, { unlink: true });
+      await renderAdminContent();
+    });
+  }
 }
 
 boot();
