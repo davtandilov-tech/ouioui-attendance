@@ -1,5 +1,7 @@
 # Учёт прихода — Telegram-бот с мини-аппом
 
+[![CI](https://github.com/davtandilov-tech/ouioui-attendance/actions/workflows/ci.yml/badge.svg)](https://github.com/davtandilov-tech/ouioui-attendance/actions/workflows/ci.yml)
+
 Бот для учёта прихода/ухода сотрудников через Telegram Mini App. Сотрудник отмечает приход и уход кнопками в мини-аппе, админ добавляет сотрудников и смотрит отчёты (в том числе кто опоздал и сколько часов отработано).
 
 ## Стек
