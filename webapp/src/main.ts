@@ -1,6 +1,12 @@
 import { api, reportCsvUrl, type AdminEmployee, type UnlinkedEmployee } from "./api.js";
 import { alertDialog, confirmDialog, initData, tg } from "./telegram.js";
 
+function escapeHtml(s: string): string {
+  const div = document.createElement("div");
+  div.textContent = s;
+  return div.innerHTML;
+}
+
 const app = document.getElementById("app")!;
 const LOGO = `<img src="/logo.png" class="logo" alt="Oui Oui" />`;
 
@@ -224,16 +230,25 @@ function renderEmployeeTable(employees: AdminEmployee[]) {
     ${employees
       .map(
         (e) => `
-      <tr>
-        <td>${e.fullName}${e.linked ? "" : " <span class=\"status\">(не привязан)</span>"}</td>
+      <tr data-row="${e.id}">
+        <td>${escapeHtml(e.fullName)}${e.linked ? "" : " <span class=\"status\">(не привязан)</span>"}</td>
         <td class="${e.lateToday ? "late" : ""}">${e.checkInTime ?? "—"}</td>
         <td>${e.checkOutTime ?? "—"}</td>
         <td>${e.workedHours ?? "—"}</td>
-        <td><a href="#" data-delete="${e.id}">удалить</a></td>
+        <td><a href="#" data-edit="${e.id}">изменить</a> · <a href="#" data-delete="${e.id}">удалить</a></td>
       </tr>`
       )
       .join("")}
   `;
+
+  table.querySelectorAll<HTMLAnchorElement>("[data-edit]").forEach((link) => {
+    link.onclick = (ev) => {
+      ev.preventDefault();
+      const id = Number(link.dataset.edit);
+      const employee = employees.find((e) => e.id === id);
+      if (employee) renderEditRow(employee);
+    };
+  });
 
   table.querySelectorAll<HTMLAnchorElement>("[data-delete]").forEach((link) => {
     link.onclick = async (ev) => {
@@ -244,6 +259,62 @@ function renderEmployeeTable(employees: AdminEmployee[]) {
       await api.adminDeleteEmployee(id);
       await renderAdminContent();
     };
+  });
+}
+
+function renderEditRow(e: AdminEmployee) {
+  const row = document.querySelector<HTMLTableRowElement>(`tr[data-row="${e.id}"]`);
+  if (!row) return;
+
+  row.innerHTML = `
+    <td colspan="4">
+      <input id="edit-name" value="${escapeHtml(e.fullName)}" placeholder="ФИО" />
+      <input id="edit-position" value="${escapeHtml(e.position)}" placeholder="Должность" />
+      <input id="edit-time" value="${e.workStartTime ? escapeHtml(e.workStartTime) : ""}" placeholder="Начало смены, напр. 09:00" />
+      <div class="error" id="edit-error"></div>
+    </td>
+    <td>
+      <a href="#" id="edit-save">сохранить</a> · <a href="#" id="edit-cancel">отмена</a>
+      ${e.linked ? ` · <a href="#" id="edit-unlink">отвязать</a>` : ""}
+    </td>
+  `;
+
+  document.getElementById("edit-cancel")!.addEventListener("click", (ev) => {
+    ev.preventDefault();
+    renderAdminContent();
+  });
+
+  document.getElementById("edit-save")!.addEventListener("click", async (ev) => {
+    ev.preventDefault();
+    const fullName = (document.getElementById("edit-name") as HTMLInputElement).value.trim();
+    const position = (document.getElementById("edit-position") as HTMLInputElement).value.trim();
+    const workStartTime = (document.getElementById("edit-time") as HTMLInputElement).value.trim();
+    const errorEl = document.getElementById("edit-error")!;
+    errorEl.textContent = "";
+
+    if (!fullName || !position) {
+      errorEl.textContent = "ФИО и должность обязательны";
+      return;
+    }
+
+    try {
+      await api.adminUpdateEmployee(e.id, {
+        fullName,
+        position,
+        ...(workStartTime ? { workStartTime } : {}),
+      });
+      await renderAdminContent();
+    } catch (err) {
+      errorEl.textContent = (err as Error).message;
+    }
+  });
+
+  const unlinkLink = document.getElementById("edit-unlink");
+  unlinkLink?.addEventListener("click", async (ev) => {
+    ev.preventDefault();
+    if (!(await confirmDialog(`Отвязать Telegram-аккаунт от ${e.fullName}?`))) return;
+    await api.adminUpdateEmployee(e.id, { unlink: true });
+    await renderAdminContent();
   });
 }
 
