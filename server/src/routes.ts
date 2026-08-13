@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { ah } from "./asyncHandler.js";
 import { prisma } from "./db.js";
+import { notifyAdmins } from "./notify.js";
 import { requireAdmin, telegramAuthMiddleware } from "./telegramAuth.js";
 import { dayKey, isLate, normalizeTimeInput, timeOfDay, workedHours } from "./time.js";
 
@@ -131,7 +132,10 @@ router.post(
       create: { employeeId: employee.id, day: today, checkInAt: new Date() },
     });
 
-    res.json({ ok: true, checkInTime: timeOfDay(attendance.checkInAt!) });
+    const checkInTime = timeOfDay(attendance.checkInAt!);
+    await notifyAdmins(`${employee.fullName} отметил(а) приход в ${checkInTime}`);
+
+    res.json({ ok: true, checkInTime });
   })
 );
 
@@ -163,11 +167,11 @@ router.post(
       data: { checkOutAt: new Date() },
     });
 
-    res.json({
-      ok: true,
-      checkOutTime: timeOfDay(attendance.checkOutAt!),
-      workedHours: workedHours(attendance.checkInAt!, attendance.checkOutAt!),
-    });
+    const checkOutTime = timeOfDay(attendance.checkOutAt!);
+    const hours = workedHours(attendance.checkInAt!, attendance.checkOutAt!);
+    await notifyAdmins(`${employee.fullName} отметил(а) уход в ${checkOutTime} (отработано часов: ${hours})`);
+
+    res.json({ ok: true, checkOutTime, workedHours: hours });
   })
 );
 
