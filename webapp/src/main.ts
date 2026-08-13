@@ -1,4 +1,4 @@
-import { api, reportCsvUrl, type AdminEmployee, type UnlinkedEmployee } from "./api.js";
+import { api, reportCsvUrl, type AdminEmployee, type ReportRow, type UnlinkedEmployee } from "./api.js";
 import { alertDialog, confirmDialog, initData, tg } from "./telegram.js";
 
 function escapeHtml(s: string): string {
@@ -178,7 +178,10 @@ async function renderAdminContent() {
     <div class="card">
       <input id="report-from" type="date" />
       <input id="report-to" type="date" />
+      <button class="button" id="report-show-btn">Показать</button>
       <button class="button secondary" id="report-btn">Скачать CSV</button>
+      <div class="error" id="report-error"></div>
+      <div id="report-result"></div>
     </div>
   `;
 
@@ -194,6 +197,25 @@ async function renderAdminContent() {
     try {
       await api.adminAddEmployee({ fullName, position, ...(workStartTime ? { workStartTime } : {}) });
       await renderAdminContent();
+    } catch (e) {
+      errorEl.textContent = (e as Error).message;
+    }
+  });
+
+  document.getElementById("report-show-btn")!.addEventListener("click", async () => {
+    const from = (document.getElementById("report-from") as HTMLInputElement).value;
+    const to = (document.getElementById("report-to") as HTMLInputElement).value;
+    const errorEl = document.getElementById("report-error")!;
+    errorEl.textContent = "";
+
+    if (!from || !to) {
+      errorEl.textContent = "Укажите обе даты";
+      return;
+    }
+
+    try {
+      const rows = await api.adminReport(from, to);
+      renderReportTable(rows);
     } catch (e) {
       errorEl.textContent = (e as Error).message;
     }
@@ -221,6 +243,46 @@ async function renderAdminContent() {
     a.click();
     URL.revokeObjectURL(url);
   });
+}
+
+function renderReportTable(rows: ReportRow[]) {
+  const container = document.getElementById("report-result")!;
+
+  if (rows.length === 0) {
+    container.innerHTML = `<p>За этот период отметок нет.</p>`;
+    return;
+  }
+
+  const totalsByEmployee = new Map<string, number>();
+  for (const r of rows) {
+    if (r.workedHours != null) {
+      totalsByEmployee.set(r.fullName, (totalsByEmployee.get(r.fullName) ?? 0) + r.workedHours);
+    }
+  }
+
+  container.innerHTML = `
+    <table>
+      <tr><th>Дата</th><th>ФИО</th><th>Приход</th><th>Уход</th><th>Часы</th></tr>
+      ${rows
+        .map(
+          (r) => `
+        <tr>
+          <td>${r.day}</td>
+          <td>${escapeHtml(r.fullName)}</td>
+          <td class="${r.lateToday ? "late" : ""}">${r.checkInTime ?? "—"}</td>
+          <td>${r.checkOutTime ?? "—"}</td>
+          <td>${r.workedHours ?? "—"}</td>
+        </tr>`
+        )
+        .join("")}
+    </table>
+    <h2>Итого за период</h2>
+    <table>
+      ${[...totalsByEmployee.entries()]
+        .map(([name, hours]) => `<tr><td>${escapeHtml(name)}</td><td>${Math.round(hours * 100) / 100}</td></tr>`)
+        .join("")}
+    </table>
+  `;
 }
 
 function renderEmployeeTable(employees: AdminEmployee[]) {
