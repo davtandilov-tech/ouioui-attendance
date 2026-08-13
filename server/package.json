@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
+    "test": "tsx --test src/**/*.test.ts",
     "build": "prisma generate && tsc -p tsconfig.json",
     "start": "prisma migrate deploy && node dist/index.js",
     "prisma:migrate": "prisma migrate dev",

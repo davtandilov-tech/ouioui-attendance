@@ -52,7 +52,7 @@ async function renderUnlinkedList(container: HTMLElement) {
   for (const emp of employees) {
     const item = document.createElement("div");
     item.className = "list-item";
-    item.innerHTML = `<div>${emp.fullName}<div class="status">${emp.position}</div></div>`;
+    item.innerHTML = `<div>${escapeHtml(emp.fullName)}<div class="status">${escapeHtml(emp.position)}</div></div>`;
     item.onclick = () => renderLinkForm(container, emp);
     container.appendChild(item);
   }
@@ -60,7 +60,7 @@ async function renderUnlinkedList(container: HTMLElement) {
 
 function renderLinkForm(container: HTMLElement, emp: UnlinkedEmployee) {
   container.innerHTML = `
-    <p>Это вы — <strong>${emp.fullName}</strong>?</p>
+    <p>Это вы — <strong>${escapeHtml(emp.fullName)}</strong>?</p>
     <p>Укажите время начала вашей смены:</p>
     <input id="link-time" placeholder="Например, 09:00" />
     <button class="button" id="link-confirm">Подтвердить</button>
@@ -128,8 +128,8 @@ async function renderMeContent() {
 
   content.innerHTML = `
     <div class="card">
-      <div>${e.fullName}</div>
-      <div class="status">${e.position} · начало смены ${e.workStartTime ?? "не указано"}</div>
+      <div>${escapeHtml(e.fullName)}</div>
+      <div class="status">${escapeHtml(e.position)} · начало смены ${e.workStartTime ?? "не указано"}</div>
       ${e.checkInTime ? `<div class="status ${e.lateToday ? "late" : "ok"}">Приход: ${e.checkInTime}${e.lateToday ? " (опоздание)" : ""}</div>` : ""}
       ${e.checkOutTime ? `<div class="status">Уход: ${e.checkOutTime}</div>` : ""}
       ${e.workedHours != null ? `<div class="status">Отработано часов: ${e.workedHours}</div>` : ""}

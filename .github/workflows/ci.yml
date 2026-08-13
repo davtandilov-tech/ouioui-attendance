@@ -10,8 +10,11 @@ jobs:
     runs-on: ubuntu-latest
     env:
       # prisma generate требует, чтобы DATABASE_URL был синтаксически валиден —
-      # реальное подключение к БД для генерации клиента и тайпчека не нужно.
+      # реальное подключение к БД для generate/тайпчека/юнит-тестов не нужно.
       DATABASE_URL: "postgresql://user:pass@localhost:5432/db"
+      BOT_TOKEN: "test-token"
+      ADMIN_TELEGRAM_IDS: "1"
+      PUBLIC_URL: "https://example.com"
     steps:
       - uses: actions/checkout@v4
 
@@ -22,3 +25,4 @@ jobs:
 
       - run: npm ci
       - run: npm run build
+      - run: npm test
